@@ -1,61 +1,92 @@
-let isAdminLoggedIn = false;
+        let isAdminLoggedIn = false;
 let userIP = '';
 let postsCache = [];
 let currentPostId = null;
 
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded');
+    
     userIP = getUserIP();
-    console.log('User ID:', userIP);
+    console.log('User IP:', userIP);
+    
+    setTimeout(() => {
+        setupAll();
+    }, 500);
+});
+
+function setupAll() {
+    console.log('Setting up all listeners...');
     
     setupNavigation();
     setupAdminLogin();
     setupPostForm();
     setupModal();
     setupAdminPostsList();
-    
     loadPosts();
-});
+    
+    console.log('✅ All setup complete');
+}
 
 function setupNavigation() {
-    document.querySelectorAll('.nav-btn').forEach(btn => {
+    console.log('Setting up navigation...');
+    
+    const navBtns = document.querySelectorAll('.nav-btn');
+    console.log('Found nav buttons:', navBtns.length);
+    
+    navBtns.forEach(btn => {
         btn.addEventListener('click', function() {
             const section = this.getAttribute('data-section');
+            console.log('Nav clicked:', section);
             
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             
             this.classList.add('active');
-            document.getElementById(section + 'Section').classList.add('active');
+            const targetSection = document.getElementById(section + 'Section');
+            if (targetSection) {
+                targetSection.classList.add('active');
+            }
         });
     });
 }
 
 function setupAdminLogin() {
+    console.log('Setting up admin login...');
+    
     const adminAccessBtn = document.getElementById('adminAccessBtn');
     const adminKeyInput = document.getElementById('adminKeyInput');
     const logoutBtn = document.getElementById('logoutBtn');
     
+    if (!adminAccessBtn) {
+        console.error('❌ adminAccessBtn not found');
+        return;
+    }
+    
     adminAccessBtn.addEventListener('click', function() {
+        console.log('Login button clicked');
+        
         const password = adminKeyInput.value.trim();
+        console.log('Password input:', password.length + ' chars');
         
         if (password === 'Satriadevs') {
+            console.log('✅ Password correct');
+            
             isAdminLoggedIn = true;
             document.getElementById('adminAccessDiv').style.display = 'none';
             document.getElementById('adminPanel').style.display = 'block';
             adminKeyInput.value = '';
+            
             showAlert('Berhasil login sebagai admin!', 'success');
-            loadAdminPostsList();
+            
+            setTimeout(() => {
+                loadAdminPostsList();
+            }, 200);
+            
         } else {
+            console.log('❌ Password wrong');
             showAlert('Password salah!', 'error');
             adminKeyInput.value = '';
         }
-    });
-    
-    logoutBtn.addEventListener('click', function() {
-        isAdminLoggedIn = false;
-        document.getElementById('adminAccessDiv').style.display = 'block';
-        document.getElementById('adminPanel').style.display = 'none';
-        showAlert('Logout berhasil!', 'success');
     });
     
     adminKeyInput.addEventListener('keypress', function(e) {
@@ -63,31 +94,101 @@ function setupAdminLogin() {
             adminAccessBtn.click();
         }
     });
+    
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
+            console.log('Logout clicked');
+            isAdminLoggedIn = false;
+            document.getElementById('adminAccessDiv').style.display = 'block';
+            document.getElementById('adminPanel').style.display = 'none';
+            showAlert('Logout berhasil!', 'success');
+        });
+    }
 }
 
 function setupPostForm() {
+    console.log('Setting up post form...');
+    
     const publishPostBtn = document.getElementById('publishPostBtn');
     const previewPostBtn = document.getElementById('previewPostBtn');
     
-    publishPostBtn.addEventListener('click', publishPost);
-    previewPostBtn.addEventListener('click', previewPost);
+    if (!publishPostBtn) {
+        console.error('❌ publishPostBtn not found');
+        return;
+    }
+    
+    console.log('Attaching click listener to publish button');
+    
+    publishPostBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Publish button clicked');
+        publishPost();
+    });
+    
+    if (previewPostBtn) {
+        previewPostBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Preview button clicked');
+            previewPost();
+        });
+    }
 }
 
 function publishPost() {
+    console.log('=== PUBLISH POST START ===');
+    console.log('Admin logged in:', isAdminLoggedIn);
+    
     if (!isAdminLoggedIn) {
+        console.error('❌ Admin not logged in');
         showAlert('Anda harus login sebagai admin terlebih dahulu!', 'error');
         return;
     }
     
-    const title = document.getElementById('postTitle').value.trim();
-    const description = document.getElementById('postDescription').value.trim();
-    const author = document.getElementById('postAuthor').value.trim();
-    const language = document.getElementById('postLanguage').value;
-    const tags = document.getElementById('postTags').value.split(',').map(tag => tag.trim()).filter(tag => tag);
-    const code = document.getElementById('postCode').value.trim();
+    const titleInput = document.getElementById('postTitle');
+    const descInput = document.getElementById('postDescription');
+    const authorInput = document.getElementById('postAuthor');
+    const langInput = document.getElementById('postLanguage');
+    const tagsInput = document.getElementById('postTags');
+    const codeInput = document.getElementById('postCode');
     
-    if (!title || !code || !author) {
-        showAlert('Judul, kode, dan nama penulis harus diisi!', 'error');
+    const title = titleInput.value.trim();
+    const description = descInput.value.trim();
+    const author = authorInput.value.trim();
+    const language = langInput.value;
+    const tags = tagsInput.value.split(',').map(tag => tag.trim()).filter(tag => tag);
+    const code = codeInput.value.trim();
+    
+    console.log('Form values:', {
+        title: title.substring(0, 30) + '...',
+        author: author,
+        language: language,
+        codeLength: code.length,
+        tagsCount: tags.length
+    });
+    
+    if (!title) {
+        console.error('❌ Title empty');
+        showAlert('Judul harus diisi!', 'error');
+        return;
+    }
+    
+    if (!code) {
+        console.error('❌ Code empty');
+        showAlert('Kode harus diisi!', 'error');
+        return;
+    }
+    
+    if (!author) {
+        console.error('❌ Author empty');
+        showAlert('Nama penulis harus diisi!', 'error');
+        return;
+    }
+    
+    if (code.length < 5) {
+        console.error('❌ Code too short');
+        showAlert('Kode minimal 5 karakter!', 'error');
         return;
     }
     
@@ -109,22 +210,61 @@ function publishPost() {
         updatedAt: now
     };
     
-    db.ref('posts').push(newPost).then(() => {
-        document.getElementById('postTitle').value = '';
-        document.getElementById('postDescription').value = '';
-        document.getElementById('postCode').value = '';
-        document.getElementById('postTags').value = '';
-        document.getElementById('postAuthor').value = 'Admin';
+    console.log('📤 Pushing to Firebase...');
+    console.log('Database type:', typeof db);
+    
+    if (!db) {
+        console.error('❌ Database is null/undefined');
+        showAlert('❌ Database belum siap. Refresh halaman.', 'error');
+        return;
+    }
+    
+    const publishBtn = document.getElementById('publishPostBtn');
+    publishBtn.disabled = true;
+    publishBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> LOADING...';
+    
+    db.ref('posts').push(newPost).then((ref) => {
+        console.log('✅ Post published successfully!');
+        console.log('Post ID:', ref.key);
         
-        showAlert('Postingan berhasil dipublish!', 'success');
-        document.querySelector('[data-section="browse"]').click();
-        loadAdminPostsList();
+        titleInput.value = '';
+        descInput.value = '';
+        codeInput.value = '';
+        tagsInput.value = '';
+        authorInput.value = 'Admin';
+        
+        publishBtn.disabled = false;
+        publishBtn.innerHTML = '<i class="fas fa-check"></i> BERHASIL!';
+        publishBtn.style.background = 'var(--success)';
+        
+        setTimeout(() => {
+            publishBtn.innerHTML = '<i class="fas fa-paper-plane"></i> PUBLISH POSTINGAN';
+            publishBtn.style.background = '';
+        }, 2000);
+        
+        showAlert('✅ Postingan berhasil dipublish!', 'success');
+        
+        setTimeout(() => {
+            document.querySelector('[data-section="browse"]').click();
+            loadAdminPostsList();
+        }, 500);
+        
     }).catch(error => {
-        showAlert('Error: ' + error.message, 'error');
+        console.error('❌ Error publishing post');
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        console.error('Full error:', error);
+        
+        publishBtn.disabled = false;
+        publishBtn.innerHTML = '<i class="fas fa-paper-plane"></i> PUBLISH POSTINGAN';
+        
+        showAlert('❌ Error: ' + error.message, 'error');
     });
 }
 
 function previewPost() {
+    console.log('Preview post clicked');
+    
     const title = document.getElementById('postTitle').value.trim();
     const description = document.getElementById('postDescription').value.trim();
     const author = document.getElementById('postAuthor').value.trim();
@@ -168,27 +308,33 @@ function previewPost() {
         tagsContainer.appendChild(tagElement);
     });
     
-    document.getElementById('commentsList').innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">Ini hanya preview. Komentar tidak tersedia.</p>';
-    
-    document.getElementById('modalLikeBtn').onclick = () => showAlert('Ini hanya preview!', 'error');
-    document.getElementById('modalDownloadBtn').onclick = () => showAlert('Ini hanya preview!', 'error');
-    document.getElementById('modalCopyBtn').onclick = () => copyToClipboard(code);
-    
+    document.getElementById('commentsList').innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">Ini hanya preview.</p>';
     document.getElementById('commentsSection').style.display = 'none';
+    
     document.getElementById('postModal').classList.add('active');
 }
 
 function loadPosts() {
+    console.log('Loading posts...');
+    
     const postsTimeline = document.getElementById('postsTimeline');
     const emptyState = document.getElementById('emptyState');
     
+    if (!db) {
+        console.error('❌ Database not ready');
+        return;
+    }
+    
     db.ref('posts').on('value', (snapshot) => {
+        console.log('📥 Posts update received');
+        
         postsCache = [];
         const data = snapshot.val();
         
         if (!data) {
+            console.log('No posts found');
             postsTimeline.innerHTML = '';
-            emptyState.style.display = 'block';
+            if (emptyState) emptyState.style.display = 'block';
             return;
         }
         
@@ -200,13 +346,15 @@ function loadPosts() {
         
         postsCache.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         
+        console.log('Posts loaded:', postsCache.length);
+        
         if (postsCache.length === 0) {
             postsTimeline.innerHTML = '';
-            emptyState.style.display = 'block';
+            if (emptyState) emptyState.style.display = 'block';
             return;
         }
         
-        emptyState.style.display = 'none';
+        if (emptyState) emptyState.style.display = 'none';
         postsTimeline.innerHTML = '';
         
         postsCache.forEach(post => {
@@ -344,7 +492,11 @@ function openPostModal(postId) {
     document.getElementById('modalLikeBtn').onclick = () => toggleLike(postId);
     document.getElementById('modalDownloadBtn').onclick = () => downloadPost(postId);
     document.getElementById('modalCopyBtn').onclick = () => copyToClipboard(post.code);
-    document.getElementById('submitCommentBtn').onclick = () => submitComment(postId);
+    
+    const submitBtn = document.getElementById('submitCommentBtn');
+    if (submitBtn) {
+        submitBtn.onclick = () => submitComment(postId);
+    }
     
     document.getElementById('postModal').classList.add('active');
 }
@@ -444,8 +596,6 @@ function loadComments(postId) {
         const commentsCount = commentsArray.length;
         document.getElementById('modalCommentsCount').textContent = commentsCount;
         document.getElementById('commentsCount').textContent = commentsCount;
-        
-        commentsList.scrollTop = commentsList.scrollHeight;
     });
 }
 
@@ -525,10 +675,10 @@ function loadAdminPostsList() {
                             ${post.language.toUpperCase()} • ${escapeHtml(post.author)} • ${getTimeAgo(post.createdAt)}
                         </p>
                         <div style="margin-top: 5px; font-size: 0.8rem; display: flex; gap: 15px;">
-                            <span><i class="fas fa-eye"></i> ${post.views || 0} views</span>
-                            <span><i class="fas fa-heart"></i> ${post.likes || 0} likes</span>
-                            <span><i class="fas fa-download"></i> ${post.downloads || 0} downloads</span>
-                            <span><i class="fas fa-comment"></i> ${post.commentsCount || 0} comments</span>
+                            <span><i class="fas fa-eye"></i> ${post.views || 0}</span>
+                            <span><i class="fas fa-heart"></i> ${post.likes || 0}</span>
+                            <span><i class="fas fa-download"></i> ${post.downloads || 0}</span>
+                            <span><i class="fas fa-comment"></i> ${post.commentsCount || 0}</span>
                         </div>
                     </div>
                     <div style="display: flex; gap: 8px;">
@@ -559,6 +709,8 @@ function setupModal() {
     const modal = document.getElementById('postModal');
     const modalClose = document.getElementById('modalClose');
     
+    if (!modalClose) return;
+    
     modalClose.addEventListener('click', () => {
         modal.classList.remove('active');
     });
@@ -571,37 +723,47 @@ function setupModal() {
 }
 
 function setupAdminPostsList() {
-    document.getElementById('clearAllPostsBtn').addEventListener('click', function() {
-        if (confirm('Apakah Anda yakin ingin menghapus SEMUA postingan?')) {
-            db.ref('posts').remove();
-            db.ref('comments').remove();
-            showAlert('Semua postingan berhasil dihapus!', 'success');
-        }
-    });
+    const clearAllBtn = document.getElementById('clearAllPostsBtn');
+    const exportBtn = document.getElementById('exportPostsBtn');
+    const refreshBtn = document.getElementById('refreshAdminBtn');
     
-    document.getElementById('exportPostsBtn').addEventListener('click', function() {
-        const exportData = {
-            posts: postsCache,
-            exportedAt: new Date().toISOString(),
-            totalPosts: postsCache.length
-        };
-        
-        const dataStr = JSON.stringify(exportData, null, 2);
-        const blob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `satriacodeshare-export-${new Date().toISOString().slice(0,10)}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        showAlert('Data berhasil diexport!', 'success');
-    });
+    if (clearAllBtn) {
+        clearAllBtn.addEventListener('click', function() {
+            if (confirm('Apakah Anda yakin ingin menghapus SEMUA postingan?')) {
+                db.ref('posts').remove();
+                db.ref('comments').remove();
+                showAlert('Semua postingan berhasil dihapus!', 'success');
+            }
+        });
+    }
     
-    document.getElementById('refreshAdminBtn').addEventListener('click', function() {
-        loadAdminPostsList();
-        showAlert('Data diperbarui!', 'success');
-    });
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function() {
+            const exportData = {
+                posts: postsCache,
+                exportedAt: new Date().toISOString(),
+                totalPosts: postsCache.length
+            };
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `satriacodeshare-${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showAlert('Data berhasil diexport!', 'success');
+        });
+    }
+    
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            loadAdminPostsList();
+            showAlert('Data diperbarui!', 'success');
+        });
+    }
 }
